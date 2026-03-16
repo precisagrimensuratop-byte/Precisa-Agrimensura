@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gestão Precisa Agrimensura</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS
+============================================================ */
+:root {
+  --bg:#0d0f11; --surface:#151820; --surface2:#1c2030; --surface3:#222840;
+  --border:#252a3a; --border2:#313755;
+  --accent:#f5a623; --accent2:#e8773a;
+  --green:#3dd68c; --green2:#2bb57a;
+  --blue:#4fa3e0; --blue2:#357ab8;
+  --text:#e8eaf0; --muted:#8891a8; --muted2:#5a6278;
+  --danger:#e05a5a; --danger2:#b84040;
+  --purple:#b06ee8; --purple2:#8a4ec8;
+  --yellow:#f9c846;
+  --header-h:56px; --nav-h:46px;
+  --radius:10px; --radius-sm:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;
+  overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse at 15% 5%,rgba(245,166,35,.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 85% 85%,rgba(79,163,224,.04) 0%,transparent 50%);}
+
+/* auth styles removidos — modo local */
+
+/* ============================================================
+   HEADER
+============================================================ */
+header{height:var(--header-h);background:rgba(13,15,17,.96);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 20px;gap:16px;position:sticky;top:0;z-index:200;}
+.hdr-logo{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  white-space:nowrap;}
+.hdr-sub{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.hdr-spacer{flex:1;}
+.hdr-sync{font-size:10px;display:flex;align-items:center;gap:6px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.sync-dot.saving{background:var(--yellow);animation:pulse .8s infinite;}
+.sync-dot.error{background:var(--danger);}
+.sync-dot.offline{background:var(--muted);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr-user{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.hdr-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);object-fit:cover;}
+.btn-logout{background:transparent;border:1px solid var(--border);border-radius:6px;
+  padding:4px 10px;color:var(--muted);font-size:9px;cursor:pointer;
+  font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;transition:all .2s;}
+.btn-logout:hover{border-color:var(--danger);color:var(--danger);}
+
+/* ============================================================
+   TAB NAV
+============================================================ */
+.tab-nav{height:var(--nav-h);background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;position:sticky;top:var(--header-h);z-index:150;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:0 18px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);
+  border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;
+  background:transparent;border-left:none;border-right:none;border-top:none;
+  transition:all .15s;}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.02);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);
+  background:rgba(245,166,35,.06);}
+.tab-icon{font-size:15px;}
+
+/* ============================================================
+   CONTENT PANELS
+============================================================ */
+.tab-panel{display:none;padding:20px;max-width:1100px;margin:0 auto;
+  animation:fadeIn .2s ease;}
+.tab-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   SECTION HEADERS
+============================================================ */
+.sec-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.sec-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.sec-title span{font-size:13px;color:var(--muted);font-weight:400;margin-left:8px;}
+.sec-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+.btn{border:none;border-radius:var(--radius-sm);padding:8px 16px;font-family:'DM Mono',monospace;
+  font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:all .15s;font-weight:500;letter-spacing:.3px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0d0f11;font-weight:700;}
+.btn-primary:hover{opacity:.9;}
+.btn-blue{background:var(--blue2);color:white;}
+.btn-blue:hover{background:var(--blue);}
+.btn-green{background:var(--green2);color:white;}
+.btn-green:hover{background:var(--green);}
+.btn-danger{background:var(--danger2);color:white;}
+.btn-danger:hover{background:var(--danger);}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:5px 10px;font-size:10px;}
+.btn-icon{padding:7px;border-radius:6px;}
+
+/* ============================================================
+   CARDS / DASHBOARD
+============================================================ */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.stat-card.accent::before{background:var(--accent);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-card.danger::before{background:var(--danger);}
+.stat-card.yellow::before{background:var(--yellow);}
+.stat-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:2px;}
+.stat-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.stat-sub{font-size:10px;color:var(--muted2);margin-top:3px;}
+
+/* ============================================================
+   TABLES
+============================================================ */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl thead tr{background:var(--surface2);}
+.tbl th{padding:10px 12px;text-align:left;font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);}
+.tbl td{padding:10px 12px;border-bottom:1px solid rgba(37,42,58,.4);vertical-align:middle;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:rgba(245,166,35,.03);}
+.tbl tbody tr{cursor:pointer;}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:9px;
+  font-weight:700;letter-spacing:.8px;text-transform:uppercase;}
+.row-actions{display:flex;gap:4px;justify-content:flex-end;}
+
+/* ============================================================
+   FILTERS / SEARCH BAR
+============================================================ */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-bar input,.filter-bar select{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);
+  font-family:'DM Mono',monospace;font-size:11px;outline:none;transition:border-color .2s;}
+.filter-bar input{flex:1;min-width:200px;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent);}
+.filter-bar select{background:var(--surface2);cursor:pointer;}
+.filter-bar select option{background:var(--surface2);}
+
+/* ============================================================
+   MODALS
+============================================================ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.modal-wide{max-width:720px;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;
+  background:var(--surface);z-index:1;}
+.modal-header h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:20px;
+  cursor:pointer;line-height:1;padding:4px;border-radius:4px;transition:color .15s;}
+.modal-close:hover{color:var(--danger);}
+.modal-body{padding:20px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;
+  border-top:1px solid var(--border);}
+
+/* ============================================================
+   FORMS
+============================================================ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-grid.cols-1{grid-template-columns:1fr;}
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.span-2{grid-column:1/-1;}
+.field label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);
+  font-family:'DM Mono',monospace;font-size:12px;outline:none;
+  transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field select option{background:var(--surface2);}
+.field textarea{resize:vertical;min-height:72px;}
+.field-hint{font-size:9px;color:var(--muted2);}
+
+/* ============================================================
+   FINANCEIRO / PAINEL
+============================================================ */
+.fin-section{margin-bottom:24px;}
+.fin-section h3{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+/* ============================================================
+   AGENDA / CALENDAR
+============================================================ */
+.agenda-layout{display:grid;grid-template-columns:300px 1fr;gap:16px;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+.cal-nav{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:5px 10px;cursor:pointer;color:var(--muted);font-size:14px;transition:all .15s;}
+.cal-nav:hover{border-color:var(--accent);color:var(--accent);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);
+  text-align:center;padding:4px 0;}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;padding:4px;border-radius:6px;cursor:pointer;
+  font-size:11px;transition:all .15s;background:transparent;border:1px solid transparent;
+  position:relative;}
+.cal-day:hover{background:var(--surface2);}
+.cal-day.today{background:rgba(245,166,35,.12);border-color:var(--accent);color:var(--accent);font-weight:700;}
+.cal-day.selected{background:rgba(245,166,35,.2);border-color:var(--accent);}
+.cal-day.other-month{opacity:.3;}
+.cal-day.has-events::after{content:'';position:absolute;bottom:3px;width:4px;height:4px;
+  border-radius:50%;background:var(--blue);}
+.cal-day.has-overdue::after{background:var(--danger);}
+.events-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.events-panel-header{padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.events-panel-header h3{font-size:12px;font-weight:600;}
+.event-list{padding:12px;}
+.event-item{display:flex;align-items:flex-start;gap:10px;padding:10px;
+  border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface2);transition:all .15s;}
+.event-item:hover{border-color:var(--accent);}
+.event-item.done{opacity:.5;}
+.event-item.done .event-title{text-decoration:line-through;}
+.event-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.event-time{font-size:10px;color:var(--muted);white-space:nowrap;}
+.event-title{font-size:11px;font-weight:600;line-height:1.3;}
+.event-sub{font-size:9px;color:var(--muted);}
+.event-tipo-badge{font-size:8px;padding:1px 6px;border-radius:4px;background:rgba(79,163,224,.15);color:var(--blue);}
+.mes-list{margin-top:16px;}
+.mes-list h4{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  margin-bottom:8px;}
+
+/* ============================================================
+   IMPOSTOS / TAX
+============================================================ */
+.tax-sim{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;margin-top:12px;}
+.tax-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;
+  border-bottom:1px solid rgba(37,42,58,.4);}
+.tax-row:last-child{border-bottom:none;font-weight:700;font-size:13px;padding-top:10px;margin-top:4px;}
+.tax-row .lbl{color:var(--muted);}
+.tax-row .val{color:var(--text);}
+.tax-row.total .val{color:var(--green);font-family:'Syne',sans-serif;}
+
+/* ============================================================
+   CALCULADORA TAB
+============================================================ */
+.calc-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;}
+.calc-nav-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;
+  font-size:10px;cursor:pointer;transition:all .15s;}
+.calc-nav-btn.active,.calc-nav-btn:hover{border-color:var(--accent);color:var(--accent);
+  background:rgba(245,166,35,.08);}
+.calc-panel{display:none;}
+.calc-panel.active{display:block;}
+.calc-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:16px;}
+.calc-section h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;}
+.calc-btn-main{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0d0f11;
+  border:none;border-radius:var(--radius-sm);padding:11px 24px;font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;transition:opacity .2s;}
+.calc-btn-main:hover{opacity:.9;}
+.result-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;margin-top:14px;}
+.result-range{display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+.rv{display:flex;flex-direction:column;gap:3px;}
+.rv span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.rv .v{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;}
+.rv .v.mid{color:var(--accent);font-size:28px;}
+.rv .v.min{color:var(--blue);}
+.rv .v.max{color:var(--accent2);}
+.result-rows{border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;}
+.rrow{display:flex;justify-content:space-between;font-size:10px;}
+.rrow .rl{color:var(--muted);}
+.rrow .rv2{color:var(--text);}
+.rrow.total{border-top:1px dashed var(--border);padding-top:6px;margin-top:3px;}
+.rrow.total span{color:var(--green);font-weight:600;}
+
+/* ============================================================
+   TIMELINE / ATIVIDADES
+============================================================ */
+.timeline{padding:4px;}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-left:2px solid var(--border);
+  padding-left:14px;position:relative;margin-left:6px;}
+.tl-item::before{content:'';position:absolute;left:-5px;top:14px;width:8px;height:8px;
+  border-radius:50%;background:var(--border);}
+.tl-date{font-size:9px;color:var(--muted);white-space:nowrap;min-width:90px;}
+.tl-text{font-size:11px;color:var(--text);}
+
+/* ============================================================
+   STATUS BADGES
+============================================================ */
+.s-orcamento{background:rgba(158,158,158,.15);color:#9e9e9e;}
+.s-aprovado{background:rgba(21,101,192,.15);color:#4fa3e0;}
+.s-andamento{background:rgba(230,81,0,.15);color:#ff9050;}
+.s-aguardando-cli{background:rgba(249,168,37,.15);color:#f9c846;}
+.s-aguardando-cri{background:rgba(106,27,154,.15);color:#b06ee8;}
+.s-aguardando-sig{background:rgba(0,105,92,.15);color:#4db6ac;}
+.s-aguardando-inc{background:rgba(0,105,92,.15);color:#4db6ac;}
+.s-concluido{background:rgba(27,94,32,.15);color:#3dd68c;}
+.s-cancelado{background:rgba(183,28,28,.15);color:#e05a5a;}
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty .empty-icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:12px;margin-top:6px;}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media(max-width:768px){
+  .agenda-layout{grid-template-columns:1fr;}
+  .form-grid,.form-grid.cols-3{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  header{padding:0 14px;}
+  .tab-panel{padding:14px;}
+  .hdr-logo{font-size:14px;}
+  .hdr-sub{display:none;}
+  .hdr-user span{display:none;}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .modal{border-radius:12px 12px 0 0;}
+  .modal-overlay{align-items:flex-end;padding:0;}
+}
+
+/* ============================================================
+   UTILS
+============================================================ */
+.hidden{display:none!important;}
+.text-accent{color:var(--accent);}
+.text-green{color:var(--green);}
+.text-blue{color:var(--blue);}
+.text-danger{color:var(--danger);}
+.text-muted{color:var(--muted);}
+.fw700{font-weight:700;}
+.sep{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.info-box{background:rgba(79,163,224,.07);border:1px solid rgba(79,163,224,.2);
+  border-radius:8px;padding:10px 14px;font-size:10px;color:var(--blue);line-height:1.6;}
+.warn-box{background:rgba(249,200,70,.07);border:1px solid rgba(249,200,70,.2);
+  border-radius:8px;padding:10px 14px;font-size:10px;color:var(--yellow);line-height:1.6;}
+.scroll-x{overflow-x:auto;}
+</style>
+</head>
+<body>
+
+</div>
+
+<!-- ============================================================
+     APP SHELL
+============================================================ -->
+<div id="app">
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="hdr-logo">⚖️ Gestão Precisa</div>
+    <div class="hdr-sub">Precisa Agrimensura · CREA-MG 141.370/D</div>
+  </div>
+  <div class="hdr-spacer"></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-txt" style="color:var(--muted);font-size:10px;">Salvo</span>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="btn-logout" onclick="exportData()" title="Exportar backup JSON">⬇ Backup</button>
+    <button class="btn-logout" onclick="document.getElementById('import-file-hdr').click()" title="Importar backup">⬆ Importar</button>
+    <input type="file" id="import-file-hdr" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('dashboard')" data-tab="dashboard">
+    <span class="tab-icon">📊</span>Dashboard
+  </button>
+  <button class="tab-btn" onclick="showTab('os')" data-tab="os">
+    <span class="tab-icon">🗂</span>Ordens de Serviço
+  </button>
+  <button class="tab-btn" onclick="showTab('clientes')" data-tab="clientes">
+    <span class="tab-icon">👥</span>Clientes
+  </button>
+  <button class="tab-btn" onclick="showTab('imoveis')" data-tab="imoveis">
+    <span class="tab-icon">🏡</span>Imóveis
+  </button>
+  <button class="tab-btn" onclick="showTab('financeiro')" data-tab="financeiro">
+    <span class="tab-icon">💰</span>Financeiro
+  </button>
+  <button class="tab-btn" onclick="showTab('lancamentos')" data-tab="lancamentos">
+    <span class="tab-icon">📑</span>Lançamentos
+  </button>
+  <button class="tab-btn" onclick="showTab('agenda')" data-tab="agenda">
+    <span class="tab-icon">📅</span>Agenda
+  </button>
+  <button class="tab-btn" onclick="showTab('impostos')" data-tab="impostos">
+    <span class="tab-icon">🧾</span>Impostos/NF
+  </button>
+  <button class="tab-btn" onclick="showTab('calculadora')" data-tab="calculadora">
+    <span class="tab-icon">⚡</span>Calculadora
+  </button>
+</nav>
+
+<!-- ============================================================
+     DASHBOARD
+============================================================ -->
+<div class="tab-panel active" id="panel-dashboard">
+  <div class="sec-header">
+    <div class="sec-title">Dashboard <span id="dash-date"></span></div>
+    <div class="sec-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Exportar backup</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">⬆ Importar</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+  <div style="background:rgba(79,163,224,.07);border:1px solid rgba(79,163,224,.2);border-radius:8px;
+    padding:10px 16px;font-size:10px;color:var(--blue);line-height:1.8;margin-bottom:16px;
+    display:flex;align-items:flex-start;gap:10px;">
+    <span style="font-size:18px;">📱</span>
+    <span><strong>Sincronizar entre PC e celular:</strong>
+    No PC → <strong>⬇ Exportar backup</strong> (salva um .json) → mande pelo WhatsApp para si mesmo →
+    No celular, abra o app → <strong>⬆ Importar</strong> → pronto! Faça o mesmo no caminho inverso.</span>
+  </div>
+  <div class="stat-grid" id="dash-stats"></div>
+  <div class="sec-header" style="margin-top:8px;margin-bottom:12px;">
+    <div class="sec-title" style="font-size:14px;">OS Recentes</div>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl" id="dash-os-table">
+      <thead><tr>
+        <th>Nº OS</th><th>Cliente</th><th>Imóvel</th><th>Serviço</th><th>Status</th><th>Prazo</th><th>Valor</th>
+      </tr></thead>
+      <tbody id="dash-os-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================
+     ORDENS DE SERVIÇO
+============================================================ -->
+<div class="tab-panel" id="panel-os">
+  <div class="sec-header">
+    <div class="sec-title">Ordens de Serviço</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="openOSModal()">＋ Nova OS</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="os-busca" placeholder="🔍 Buscar por nº, cliente, serviço ou imóvel..." oninput="renderOS()">
+    <select id="os-status-filter" onchange="renderOS()">
+      <option value="">Todos os status</option>
+      <option>Orçamento</option><option>Aprovado</option><option>Em andamento</option>
+      <option>Aguardando cliente</option><option>Aguardando CRI</option>
+      <option>Aguardando SIGEF</option><option>Aguardando INCRA</option>
+      <option>Concluído</option><option>Cancelado</option>
+    </select>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>Nº OS</th><th>Cliente</th><th>Imóvel</th><th>Serviço</th><th>Status</th><th>Prazo</th><th>Valor</th><th></th>
+      </tr></thead>
+      <tbody id="os-tbody"></tbody>
+    </table>
+  </div>
+  <div id="os-empty" class="empty hidden">
+    <div class="empty-icon">🗂</div>
+    <div>Nenhuma ordem de serviço encontrada</div>
+    <p>Clique em <strong>+ Nova OS</strong> para começar</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     CLIENTES
+============================================================ -->
+<div class="tab-panel" id="panel-clientes">
+  <div class="sec-header">
+    <div class="sec-title">Clientes</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="openClienteModal()">＋ Novo Cliente</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="cli-busca" placeholder="🔍 Buscar por nome, CPF/CNPJ ou cidade..." oninput="renderClientes()">
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>E-mail</th><th>Cidade/UF</th><th></th>
+      </tr></thead>
+      <tbody id="cli-tbody"></tbody>
+    </table>
+  </div>
+  <div id="cli-empty" class="empty hidden">
+    <div class="empty-icon">👥</div>
+    <div>Nenhum cliente cadastrado</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     IMÓVEIS
+============================================================ -->
+<div class="tab-panel" id="panel-imoveis">
+  <div class="sec-header">
+    <div class="sec-title">Imóveis</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="openImovelModal()">＋ Novo Imóvel</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="im-busca" placeholder="🔍 Buscar por denominação, município ou matrícula..." oninput="renderImoveis()">
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>Denominação</th><th>Proprietário</th><th>Município</th><th>Área (ha)</th><th>Matrícula</th><th>Tipo</th><th></th>
+      </tr></thead>
+      <tbody id="im-tbody"></tbody>
+    </table>
+  </div>
+  <div id="im-empty" class="empty hidden">
+    <div class="empty-icon">🏡</div>
+    <div>Nenhum imóvel cadastrado</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FINANCEIRO (PAINEL)
+============================================================ -->
+<div class="tab-panel" id="panel-financeiro">
+  <div class="sec-header">
+    <div class="sec-title">Painel Financeiro</div>
+  </div>
+  <div class="stat-grid" id="fin-stats"></div>
+  <hr class="sep">
+  <div class="fin-section">
+    <h3>Lançamentos Recentes</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>OS</th><th>Cliente</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Pagamento</th><th>Forma</th><th>NF</th>
+        </tr></thead>
+        <tbody id="fin-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     LANÇAMENTOS
+============================================================ -->
+<div class="tab-panel" id="panel-lancamentos">
+  <div class="sec-header">
+    <div class="sec-title">Lançamentos Financeiros</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="openPagtoModal()">＋ Novo Lançamento</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="lan-busca" placeholder="🔍 Buscar por OS ou cliente..." oninput="renderLancamentos()">
+    <select id="lan-filter" onchange="renderLancamentos()">
+      <option value="">Todos</option>
+      <option value="pago">Pagos</option>
+      <option value="pendente">Pendentes</option>
+      <option value="vencido">Vencidos</option>
+    </select>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>OS</th><th>Cliente</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Pagamento</th><th>Forma</th><th>NF nº</th><th></th>
+      </tr></thead>
+      <tbody id="lan-tbody"></tbody>
+    </table>
+  </div>
+  <div id="lan-empty" class="empty hidden">
+    <div class="empty-icon">📑</div>
+    <div>Nenhum lançamento encontrado</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     AGENDA
+============================================================ -->
+<div class="tab-panel" id="panel-agenda">
+  <div class="sec-header">
+    <div class="sec-title">Agenda de Campo</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="openAgendaModal()">＋ Novo Evento</button>
+    </div>
+  </div>
+  <div class="agenda-layout">
+    <!-- Calendário -->
+    <div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calNav(-1)">‹</button>
+        <div class="cal-title" id="cal-title">Março 2026</div>
+        <button class="cal-nav" onclick="calNav(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue)"></span>Com evento
+        </span>
+        <span style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger)"></span>Vencido
+        </span>
+      </div>
+    </div>
+    <!-- Painel de eventos -->
+    <div>
+      <div class="events-panel">
+        <div class="events-panel-header">
+          <h3 id="events-day-title">Eventos do dia</h3>
+          <button class="btn btn-primary btn-sm" onclick="openAgendaModal()">＋</button>
+        </div>
+        <div class="event-list" id="events-day-list">
+          <div class="empty" style="padding:24px 0;">
+            <div>Nenhum evento neste dia</div>
+          </div>
+        </div>
+      </div>
+      <div class="mes-list" style="margin-top:12px;">
+        <div class="events-panel">
+          <div class="events-panel-header">
+            <h3>Todos os eventos do mês</h3>
+          </div>
+          <div class="event-list" id="events-mes-list" style="max-height:280px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     IMPOSTOS / NF
+============================================================ -->
+<div class="tab-panel" id="panel-impostos">
+  <div class="sec-header">
+    <div class="sec-title">Impostos e Notas Fiscais</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="saveImpostos()">💾 Salvar Alíquotas</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+    <div>
+      <div class="calc-section" style="margin-bottom:14px;">
+        <h3 style="font-size:12px;margin-bottom:14px;">⚙️ Configuração de Alíquotas</h3>
+        <div class="form-grid cols-1">
+          <div class="field">
+            <label>Regime Tributário</label>
+            <select id="imp-regime">
+              <option>Simples Nacional</option>
+              <option>Lucro Presumido</option>
+              <option>MEI</option>
+              <option>Autônomo (Carnê-Leão)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label>ISS (%)</label>
+            <input type="number" id="imp-iss" value="3.0" step="0.1" min="0" max="20" oninput="simularNF()">
+          </div>
+          <div class="field">
+            <label>IRPJ / Simples (%)</label>
+            <input type="number" id="imp-irpj" value="4.8" step="0.1" min="0" max="30" oninput="simularNF()">
+          </div>
+          <div class="field">
+            <label>COFINS (%)</label>
+            <input type="number" id="imp-cofins" value="0.0" step="0.1" min="0" max="10" oninput="simularNF()">
+          </div>
+          <div class="field">
+            <label>PIS (%)</label>
+            <input type="number" id="imp-pis" value="0.0" step="0.1" min="0" max="5" oninput="simularNF()">
+          </div>
+          <div class="field">
+            <label>CSLL (%)</label>
+            <input type="number" id="imp-csll" value="0.0" step="0.1" min="0" max="15" oninput="simularNF()">
+          </div>
+        </div>
+      </div>
+      <div class="calc-section">
+        <h3 style="font-size:12px;margin-bottom:14px;">🧮 Simulador de NF</h3>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Valor da NF (R$)</label>
+          <input type="number" id="imp-sim-val" value="5000" step="100" oninput="simularNF()">
+        </div>
+        <div class="tax-sim" id="imp-sim-result"></div>
+      </div>
+    </div>
+    <div>
+      <div class="calc-section">
+        <h3 style="font-size:12px;margin-bottom:14px;">📊 NFs Emitidas por Mês</h3>
+        <div class="tbl-wrap">
+          <table class="tbl" id="nf-mensal-table">
+            <thead><tr><th>Mês</th><th>Qtd</th><th>Total NF</th><th>Impostos Est.</th><th>Líquido</th></tr></thead>
+            <tbody id="nf-mensal-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CALCULADORA
+============================================================ -->
+<div class="tab-panel" id="panel-calculadora">
+  <div class="sec-header">
+    <div class="sec-title">Calculadora de Orçamento</div>
+    <div class="sec-actions">
+      <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);">
+        <label class="switch-lbl" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="calc-tax" checked onchange="recalcCalc()">
+          <span style="font-size:10px;">Impostos 6%</span>
+        </label>
+        <label class="switch-lbl" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:8px;">
+          <input type="checkbox" id="calc-art" checked onchange="recalcCalc()">
+          <span style="font-size:10px;">ART CREA-MG</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="calc-nav" id="calc-nav">
+    <button class="calc-nav-btn active" onclick="showCalc('geo')" data-calc="geo">🛰️ Georreferenciamento</button>
+    <button class="calc-nav-btn" onclick="showCalc('planialt')" data-calc="planialt">🗺️ Planialtimétrico</button>
+    <button class="calc-nav-btn" onclick="showCalc('bat')" data-calc="bat">🌊 Batimetria</button>
+    <button class="calc-nav-btn" onclick="showCalc('lot')" data-calc="lot">🏘️ Loteamento</button>
+    <button class="calc-nav-btn" onclick="showCalc('car')" data-calc="car">🌿 CAR</button>
+    <button class="calc-nav-btn" onclick="showCalc('per')" data-calc="per">🔍 Perícia</button>
+    <button class="calc-nav-btn" onclick="showCalc('est')" data-calc="est">🛣️ Estradas</button>
+    <button class="calc-nav-btn" onclick="showCalc('vis')" data-calc="vis">👁️ Vistoria</button>
+  </div>
+
+  <!-- GEORREFERENCIAMENTO -->
+  <div class="calc-panel active" id="calc-geo">
+    <div class="calc-section">
+      <h3>🛰️ Georreferenciamento de Imóvel Rural</h3>
+      <div class="form-grid">
+        <div class="field"><label>Área (ha)</label>
+          <input type="number" id="cg-area" placeholder="Ex: 50" oninput="calcGeo()"></div>
+        <div class="field"><label>Nº de Vértices</label>
+          <input type="number" id="cg-vert" placeholder="Ex: 8" oninput="calcGeo()"></div>
+        <div class="field"><label>Distância (km)</label>
+          <input type="number" id="cg-dist" placeholder="Ex: 80" oninput="calcGeo()"></div>
+        <div class="field"><label>Complexidade</label>
+          <select id="cg-compl" onchange="calcGeo()">
+            <option value="1">Plano / fácil acesso</option>
+            <option value="1.3">Ondulado / vegetação moderada</option>
+            <option value="1.6">Acidentado / densa</option>
+            <option value="2">Muito acidentado / difícil</option>
+          </select></div>
+        <div class="field"><label>Tipo de Imóvel</label>
+          <select id="cg-tipo" onchange="calcGeo()">
+            <option value="1">Simples (1 proprietário)</option>
+            <option value="1.2">Condomínio / Herança</option>
+            <option value="1.5">Assentamento</option>
+          </select></div>
+        <div class="field"><label>Averbação Cartório</label>
+          <select id="cg-cart" onchange="calcGeo()">
+            <option value="0">Não</option>
+            <option value="800">Sim (+R$ 800)</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcGeo()">⚡ Calcular</button>
+      <div id="res-geo"></div>
+    </div>
+  </div>
+
+  <!-- PLANIALTIMÉTRICO -->
+  <div class="calc-panel" id="calc-planialt">
+    <div class="calc-section">
+      <h3>🗺️ Levantamento Planialtimétrico</h3>
+      <div class="form-grid">
+        <div class="field"><label>Área (ha)</label>
+          <input type="number" id="cp-area" placeholder="Ex: 2" oninput="calcPa()"></div>
+        <div class="field"><label>Finalidade</label>
+          <select id="cp-fin" onchange="calcPa()">
+            <option value="1">Construção civil</option>
+            <option value="1.2">Projeto de loteamento</option>
+            <option value="1.3">Regularização</option>
+            <option value="1.5">Grandes obras</option>
+          </select></div>
+        <div class="field"><label>Tipo de Área</label>
+          <select id="cp-tipo" onchange="calcPa()">
+            <option value="1">Urbana plana</option>
+            <option value="1.2">Urbana com relevo</option>
+            <option value="1.3">Rural plana</option>
+            <option value="1.6">Rural acidentada</option>
+          </select></div>
+        <div class="field"><label>Distância (km)</label>
+          <input type="number" id="cp-dist" placeholder="Ex: 40" oninput="calcPa()"></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcPa()">⚡ Calcular</button>
+      <div id="res-pa"></div>
+    </div>
+  </div>
+
+  <!-- BATIMETRIA -->
+  <div class="calc-panel" id="calc-bat">
+    <div class="calc-section">
+      <h3>🌊 Levantamento Batimétrico</h3>
+      <div class="form-grid">
+        <div class="field"><label>Área da Lâmina (ha)</label>
+          <input type="number" id="cb-area" placeholder="Ex: 5" oninput="calcBat()"></div>
+        <div class="field"><label>Tecnologia</label>
+          <select id="cb-tech" onchange="calcBat()">
+            <option value="1">Ecobatímetro convencional</option>
+            <option value="1.4">Drone Aquático / VANT</option>
+            <option value="1.6">Multifeixe (alta densidade)</option>
+          </select></div>
+        <div class="field"><label>Entregáveis</label>
+          <select id="cb-entr" onchange="calcBat()">
+            <option value="1">Mapa + volume</option>
+            <option value="1.2">+ Modelo 3D</option>
+            <option value="1.4">+ Laudo técnico completo</option>
+          </select></div>
+        <div class="field"><label>Distância (km)</label>
+          <input type="number" id="cb-dist" placeholder="Ex: 100" oninput="calcBat()"></div>
+        <div class="field"><label>Acesso</label>
+          <select id="cb-acs" onchange="calcBat()">
+            <option value="1">Fácil</option>
+            <option value="1.2">Moderado</option>
+            <option value="1.5">Difícil</option>
+          </select></div>
+        <div class="field"><label>Macrófitas</label>
+          <select id="cb-mac" onchange="calcBat()">
+            <option value="1">Não / mínima</option>
+            <option value="1.2">Moderada</option>
+            <option value="1.4">Densa</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcBat()">⚡ Calcular</button>
+      <div id="res-bat"></div>
+    </div>
+  </div>
+
+  <!-- LOTEAMENTO -->
+  <div class="calc-panel" id="calc-lot">
+    <div class="calc-section">
+      <h3>🏘️ Projeto de Loteamento Urbano</h3>
+      <div class="form-grid">
+        <div class="field"><label>Área da Gleba (m²)</label>
+          <input type="number" id="cl-area" placeholder="Ex: 50000" oninput="calcLot()"></div>
+        <div class="field"><label>Nº de Lotes</label>
+          <input type="number" id="cl-lotes" placeholder="Ex: 80" oninput="calcLot()"></div>
+        <div class="field"><label>Escopo</label>
+          <select id="cl-esc" onchange="calcLot()">
+            <option value="1">Topografia + implantação</option>
+            <option value="1.4">+ Projeto de vias e infra</option>
+            <option value="1.8">Completo com aprovação</option>
+          </select></div>
+        <div class="field"><label>Complexidade</label>
+          <select id="cl-compl" onchange="calcLot()">
+            <option value="1">Simples</option>
+            <option value="1.3">Com APP / área verde</option>
+            <option value="1.6">Múltiplas restrições</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcLot()">⚡ Calcular</button>
+      <div id="res-lot"></div>
+    </div>
+  </div>
+
+  <!-- CAR -->
+  <div class="calc-panel" id="calc-car">
+    <div class="calc-section">
+      <h3>🌿 CAR — Cadastro Ambiental Rural</h3>
+      <div class="form-grid">
+        <div class="field"><label>Área (ha)</label>
+          <input type="number" id="cc-area" placeholder="Ex: 80" oninput="calcCar()"></div>
+        <div class="field"><label>Complexidade</label>
+          <select id="cc-compl" onchange="calcCar()">
+            <option value="1">Simples (1 matrícula)</option>
+            <option value="1.4">Moderada (vegetação + APP)</option>
+            <option value="1.8">Complexa (restrições)</option>
+          </select></div>
+        <div class="field"><label>Shapefile / Mapeamento</label>
+          <select id="cc-shp" onchange="calcCar()">
+            <option value="1">Sim</option>
+            <option value="0.7">Não (base existente)</option>
+          </select></div>
+        <div class="field"><label>Inclui Reserva Legal</label>
+          <select id="cc-rl" onchange="calcCar()">
+            <option value="1">Não</option>
+            <option value="1.3">Sim</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcCar()">⚡ Calcular</button>
+      <div id="res-car"></div>
+    </div>
+  </div>
+
+  <!-- PERÍCIA -->
+  <div class="calc-panel" id="calc-per">
+    <div class="calc-section">
+      <h3>🔍 Perícia / Laudo Técnico Judicial</h3>
+      <div class="form-grid">
+        <div class="field"><label>Tipo de Perícia</label>
+          <select id="cper-tipo" onchange="calcPer()">
+            <option value="1">Conflito de divisas simples</option>
+            <option value="1.5">Ação demarcatória</option>
+            <option value="2">Ação de usucapião</option>
+            <option value="2.5">Desapropriação</option>
+            <option value="3">Avaliação judicial</option>
+          </select></div>
+        <div class="field"><label>Área (m²)</label>
+          <input type="number" id="cper-area" placeholder="Ex: 5000" oninput="calcPer()"></div>
+        <div class="field"><label>Complexidade</label>
+          <select id="cper-compl" onchange="calcPer()">
+            <option value="1">Baixa</option>
+            <option value="1.4">Média</option>
+            <option value="1.8">Alta</option>
+          </select></div>
+        <div class="field"><label>Diligências de Campo</label>
+          <input type="number" id="cper-dil" placeholder="Ex: 2" oninput="calcPer()"></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcPer()">⚡ Calcular</button>
+      <div id="res-per"></div>
+    </div>
+  </div>
+
+  <!-- ESTRADAS -->
+  <div class="calc-panel" id="calc-est">
+    <div class="calc-section">
+      <h3>🛣️ Projetos de Estradas Vicinais</h3>
+      <div class="form-grid">
+        <div class="field"><label>Extensão (km)</label>
+          <input type="number" id="ce-ext" placeholder="Ex: 5" oninput="calcEst()"></div>
+        <div class="field"><label>Tipo de Serviço</label>
+          <select id="ce-tipo" onchange="calcEst()">
+            <option value="1">Levantamento topográfico</option>
+            <option value="1.5">Levant. + projeto geométrico</option>
+            <option value="1.8">Projeto completo + drenagem</option>
+            <option value="2.2">Projeto executivo + orçamento</option>
+          </select></div>
+        <div class="field"><label>Relevo</label>
+          <select id="ce-relv" onchange="calcEst()">
+            <option value="1">Plano / suave</option>
+            <option value="1.3">Ondulado</option>
+            <option value="1.6">Montanhoso</option>
+          </select></div>
+        <div class="field"><label>Classe da Via</label>
+          <select id="ce-clas" onchange="calcEst()">
+            <option value="1">Vicinal rural</option>
+            <option value="1.3">Municipal</option>
+            <option value="1.6">Estadual / federal</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcEst()">⚡ Calcular</button>
+      <div id="res-est"></div>
+    </div>
+  </div>
+
+  <!-- VISTORIA -->
+  <div class="calc-panel" id="calc-vis">
+    <div class="calc-section">
+      <h3>👁️ Vistoria / Parecer Técnico</h3>
+      <div class="form-grid">
+        <div class="field"><label>Finalidade</label>
+          <select id="cv-fin" onchange="calcVis()">
+            <option value="1">Verificação de limites</option>
+            <option value="1.2">Conformidade com projeto</option>
+            <option value="1.4">Regularização / habite-se</option>
+            <option value="1.5">Avaliação de danos</option>
+          </select></div>
+        <div class="field"><label>Horas Estimadas</label>
+          <input type="number" id="cv-hrs" placeholder="Ex: 4" oninput="calcVis()"></div>
+        <div class="field"><label>Distância (km)</label>
+          <input type="number" id="cv-dist" placeholder="Ex: 30" oninput="calcVis()"></div>
+        <div class="field"><label>Inclui Relatório Formal?</label>
+          <select id="cv-rel" onchange="calcVis()">
+            <option value="1">Sim — com ART</option>
+            <option value="0.7">Apenas parecer verbal</option>
+          </select></div>
+      </div>
+      <button class="calc-btn-main" onclick="calcVis()">⚡ Calcular</button>
+      <div id="res-vis"></div>
+    </div>
+  </div>
+</div><!-- /calculadora -->
+
+</div><!-- /app -->
+
+<!-- ============================================================
+     MODAL — ORDEM DE SERVIÇO
+============================================================ -->
+<div class="modal-overlay hidden" id="modal-os">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="modal-os-title">Nova Ordem de Serviço</h3>
+      <button class="modal-close" onclick="closeModal('modal-os')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Cliente *</label>
+          <select id="os-cli-sel" onchange="updateImovelSelect()">
+            <option value="">Selecionar cliente...</option>
+          </select></div>
+        <div class="field"><label>Imóvel</label>
+          <select id="os-im-sel"><option value="">Selecionar imóvel...</option></select></div>
+        <div class="field"><label>Tipo de Serviço *</label>
+          <select id="os-tipo-srv">
+            <option>Georreferenciamento Rural</option>
+            <option>Retificação de Área</option>
+            <option>Desmembramento Rural</option>
+            <option>Remembramento</option>
+            <option>Loteamento Urbano</option>
+            <option>Desmembramento Urbano</option>
+            <option>Memorial Descritivo</option>
+            <option>Planta de Georreferenciamento</option>
+            <option>Anuências de Confrontantes</option>
+            <option>Topografia Geral</option>
+            <option>Levantamento Planialtimétrico</option>
+            <option>Levantamento Batimétrico</option>
+            <option>Divisão e Demarcação</option>
+            <option>Usucapião Extrajudicial</option>
+            <option>CAR / Reserva Legal</option>
+            <option>Perícia Judicial</option>
+            <option>Projeto de Estrada</option>
+            <option>Vistoria / Parecer</option>
+            <option>Outro</option>
+          </select></div>
+        <div class="field"><label>Status</label>
+          <select id="os-status-sel">
+            <option>Orçamento</option><option>Aprovado</option><option>Em andamento</option>
+            <option>Aguardando cliente</option><option>Aguardando CRI</option>
+            <option>Aguardando SIGEF</option><option>Aguardando INCRA</option>
+            <option>Concluído</option><option>Cancelado</option>
+          </select></div>
+        <div class="field"><label>Valor (R$)</label>
+          <input type="number" id="os-valor" placeholder="Ex: 4500.00" step="0.01"></div>
+        <div class="field"><label>Data de Abertura</label>
+          <input type="date" id="os-abertura"></div>
+        <div class="field"><label>Prazo</label>
+          <input type="date" id="os-prazo"></div>
+        <div class="field"><label>Data de Conclusão</label>
+          <input type="date" id="os-conclusao"></div>
+        <div class="field span-2"><label>Descrição</label>
+          <textarea id="os-descr" rows="3" placeholder="Descreva o serviço..."></textarea></div>
+        <div class="field span-2"><label>Observações Internas</label>
+          <textarea id="os-obs" rows="2" placeholder="Notas internas..."></textarea></div>
+      </div>
+      <div id="os-atividades-section" class="hidden">
+        <hr class="sep">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="font-size:11px;font-weight:600;">📋 Linha do Tempo / Atividades</label>
+        </div>
+        <div class="timeline" id="os-tl-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" id="os-atv-txt" placeholder="Registrar atividade..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;">
+          <button class="btn btn-ghost btn-sm" onclick="addAtividade()">+ Registrar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-os')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveOS()">💾 Salvar OS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — CLIENTE
+============================================================ -->
+<div class="modal-overlay hidden" id="modal-cli">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-cli-title">Novo Cliente</h3>
+      <button class="modal-close" onclick="closeModal('modal-cli')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field span-2"><label>Nome *</label>
+          <input type="text" id="cli-nome" placeholder="Nome completo ou razão social"></div>
+        <div class="field"><label>CPF / CNPJ</label>
+          <input type="text" id="cli-cpf" placeholder="000.000.000-00"></div>
+        <div class="field"><label>Telefone</label>
+          <input type="text" id="cli-tel" placeholder="(32) 99999-9999"></div>
+        <div class="field span-2"><label>E-mail</label>
+          <input type="email" id="cli-email" placeholder="email@exemplo.com"></div>
+        <div class="field span-2"><label>Endereço</label>
+          <input type="text" id="cli-end" placeholder="Rua, nº, bairro"></div>
+        <div class="field"><label>Cidade / UF</label>
+          <input type="text" id="cli-cidade" placeholder="Guiricema, MG"></div>
+        <div class="field"><label>Observações</label>
+          <input type="text" id="cli-obs" placeholder="Notas..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cli')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCliente()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — IMÓVEL
+============================================================ -->
+<div class="modal-overlay hidden" id="modal-im">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-im-title">Novo Imóvel</h3>
+      <button class="modal-close" onclick="closeModal('modal-im')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field span-2"><label>Denominação *</label>
+          <input type="text" id="im-denom" placeholder="Ex: Fazenda São Domingos"></div>
+        <div class="field"><label>Proprietário</label>
+          <select id="im-cli-sel"><option value="">Selecionar cliente...</option></select></div>
+        <div class="field"><label>Município / UF</label>
+          <input type="text" id="im-mun" placeholder="Guiricema, MG"></div>
+        <div class="field"><label>Área (ha)</label>
+          <input type="number" id="im-area" placeholder="Ex: 50.0000" step="0.0001"></div>
+        <div class="field"><label>Tipo</label>
+          <select id="im-tipo">
+            <option>Rural</option><option>Urbano</option><option>Peri-urbano</option>
+          </select></div>
+        <div class="field"><label>Matrícula</label>
+          <input type="text" id="im-mat" placeholder="Ex: 2073"></div>
+        <div class="field"><label>CRI / Cartório</label>
+          <input type="text" id="im-cri" placeholder="Ex: 1º CRI Guiricema"></div>
+        <div class="field"><label>Código SIGEF</label>
+          <input type="text" id="im-sigef" placeholder="Ex: MG-XXXXX..."></div>
+        <div class="field span-2"><label>Observações</label>
+          <textarea id="im-obs" rows="2" placeholder="Notas, pendências, histórico..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-im')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveImovel()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — PAGAMENTO / LANÇAMENTO
+============================================================ -->
+<div class="modal-overlay hidden" id="modal-pag">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-pag-title">Novo Lançamento</h3>
+      <button class="modal-close" onclick="closeModal('modal-pag')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field span-2"><label>OS Relacionada *</label>
+          <select id="pag-os-sel"><option value="">Selecionar OS...</option></select></div>
+        <div class="field"><label>Tipo</label>
+          <select id="pag-tipo">
+            <option>Recebimento</option><option>Despesa</option>
+          </select></div>
+        <div class="field"><label>Forma de Pagamento</label>
+          <select id="pag-forma">
+            <option>PIX</option><option>Transferência</option><option>Dinheiro</option>
+            <option>Cheque</option><option>Boleto</option>
+          </select></div>
+        <div class="field"><label>Valor (R$) *</label>
+          <input type="number" id="pag-valor" placeholder="Ex: 2500.00" step="0.01"></div>
+        <div class="field"><label>Data de Vencimento</label>
+          <input type="date" id="pag-vcto"></div>
+        <div class="field"><label>Data de Pagamento</label>
+          <input type="date" id="pag-pgto"></div>
+        <div class="field"><label>Nº da Nota Fiscal</label>
+          <input type="text" id="pag-nf-num" placeholder="Ex: 0042"></div>
+        <div class="field"><label>Valor da NF (R$)</label>
+          <input type="number" id="pag-nf-val" placeholder="Ex: 2500.00" step="0.01"></div>
+        <div class="field"><label>Data da NF</label>
+          <input type="date" id="pag-nf-data"></div>
+        <div class="field"><label>ISS Alíquota (%)</label>
+          <input type="number" id="pag-iss" value="3.0" step="0.1"></div>
+        <div class="field span-2"><label>Observações</label>
+          <input type="text" id="pag-obs" placeholder="Notas..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pag')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePagto()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — EVENTO DE AGENDA
+============================================================ -->
+<div class="modal-overlay hidden" id="modal-agenda">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-agenda-title">Novo Evento</h3>
+      <button class="modal-close" onclick="closeModal('modal-agenda')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field span-2"><label>Título *</label>
+          <input type="text" id="ag-titulo" placeholder="Ex: Levantamento Fazenda São Domingos"></div>
+        <div class="field"><label>Tipo</label>
+          <select id="ag-tipo">
+            <option>Visita de campo</option><option>Levantamento topográfico</option>
+            <option>Reunião com cliente</option><option>Entrega de documentos</option>
+            <option>Protocolo SIGEF/INCRA</option><option>Prazo legal</option>
+            <option>Audiência</option><option>Outro</option>
+          </select></div>
+        <div class="field"><label>OS Relacionada</label>
+          <select id="ag-os-sel"><option value="">Nenhuma</option></select></div>
+        <div class="field"><label>Data Início *</label>
+          <input type="date" id="ag-data-ini"></div>
+        <div class="field"><label>Data Fim</label>
+          <input type="date" id="ag-data-fim"></div>
+        <div class="field"><label>Hora Início</label>
+          <input type="time" id="ag-hora-ini" placeholder="08:00"></div>
+        <div class="field"><label>Hora Fim</label>
+          <input type="time" id="ag-hora-fim" placeholder="17:00"></div>
+        <div class="field span-2"><label>Descrição</label>
+          <textarea id="ag-desc" rows="2" placeholder="Detalhes do evento..."></textarea></div>
+        <div class="field"><label>Concluído?</label>
+          <select id="ag-conc">
+            <option value="0">Não</option>
+            <option value="1">Sim ✅</option>
+          </select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-agenda')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAgenda()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST
+============================================================ -->
+<div id="toast" style="position:fixed;bottom:20px;right:20px;z-index:9000;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 20px;font-size:11px;color:var(--text);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);display:none;
+  align-items:center;gap:8px;max-width:320px;transition:all .3s;"></div>
+
+<script>
+// ================================================================
+//  CONFIGURAÇÃO — ARMAZENAMENTO LOCAL
+// ================================================================
+const STORAGE_KEY = 'gestao_precisa_data';
+
+// ================================================================
+//  DATA STORE
+// ================================================================
+const DB = {
+  clientes: [],
+  imoveis: [],
+  ordens_servico: [],
+  atividades: [],
+  pagamentos: [],
+  agenda: [],
+  config_impostos: {
+    iss_aliq:3.0, irpj_aliq:4.8, cofins_aliq:0.0,
+    pis_aliq:0.0, csll_aliq:0.0, regime:'Simples Nacional'
+  },
+  empresa: {
+    nome:'Precisa Agrimensura', cnpj:'43.503.235/0001-09',
+    cidade_uf:'Guiricema, MG', responsavel:'Helton J. C. Lourenço',
+    crea:'CREA-MG 141.370/D'
+  },
+  _meta:{ version:1 },
+  _ids:{ clientes:1, imoveis:1, os:1, atv:1, pag:1, ag:1 }
+};
+
+function newId(e){ return DB._ids[e]++; }
+
+// ================================================================
+//  ARMAZENAMENTO LOCAL (localStorage)
+// ================================================================
+let saveTimer = null;
+
+function saveToDrive(immediate=false){
+  clearTimeout(saveTimer);
+  const delay = immediate ? 0 : 800;
+  saveTimer = setTimeout(()=>{
+    setSyncStatus('saving','Salvando...');
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+      setSyncStatus('ok','Salvo ✓');
+    } catch(e){
+      setSyncStatus('error','Erro ao salvar');
+      console.error('Save error',e);
+    }
+  }, delay);
+}
+
+function setSyncStatus(state, txt){
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot';
+  if(state==='saving') dot.classList.add('saving');
+  if(state==='error') dot.classList.add('error');
+  document.getElementById('sync-txt').textContent = txt;
+}
+
+function loadDBFromJSON(data){
+  if(!data) return;
+  if(data.clientes) DB.clientes = data.clientes;
+  if(data.imoveis) DB.imoveis = data.imoveis;
+  if(data.ordens_servico) DB.ordens_servico = data.ordens_servico;
+  if(data.atividades) DB.atividades = data.atividades;
+  if(data.pagamentos) DB.pagamentos = data.pagamentos;
+  if(data.agenda) DB.agenda = data.agenda;
+  if(data.config_impostos) DB.config_impostos = data.config_impostos;
+  if(data.empresa) DB.empresa = data.empresa;
+  if(data._ids) DB._ids = data._ids;
+}
+
+// Carregar dados ao abrir
+window.addEventListener('load', ()=>{
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){ try{ loadDBFromJSON(JSON.parse(saved)); }catch(e){ console.error('Erro ao carregar dados',e); } }
+  renderAll();
+  document.getElementById('dash-date').textContent =
+    '— '+new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  setSyncStatus('ok','Salvo');
+});
+
+function doLogout(){ /* não usado no modo local */ }
+function showClientIdHelp(){ /* não usado no modo local */ }
+
+// ================================================================
+//  UTILS
+// ================================================================
+const fmtR = v => v == null ? '' :
+  'R$ '+(+v).toFixed(2).replace('.',',').replace(/(\d)(?=(\d{3})+,)/g,'$1.');
+const fmtDate = s => { if(!s) return ''; try{ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }catch{return s;} };
+const today = () => new Date().toISOString().slice(0,10);
+const mob   = km => km ? Math.max(0, (km-30)*1.85) : 0;
+
+function showToast(msg, type='info'){
+  const t = document.getElementById('toast');
+  const icons = {info:'ℹ️',warn:'⚠️',danger:'❌',ok:'✅'};
+  t.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
+  t.style.display = 'flex';
+  t.style.borderColor = type==='danger'?'var(--danger)':type==='ok'?'var(--green)':type==='warn'?'var(--yellow)':'var(--border)';
+  setTimeout(()=>{ t.style.display='none'; }, 3200);
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.add('hidden');
+  _editId = null;
+}
+
+function showClientIdHelp(){
+  alert('Para obter o Client ID:\n\n1. Acesse console.cloud.google.com\n2. Crie um projeto (ou use um existente)\n3. Ative a "Google Drive API"\n4. Vá em "Credenciais" → "Criar credencial" → "ID do cliente OAuth"\n5. Tipo: Aplicativo da Web\n6. Origens autorizadas: http://localhost (se servir local)\n7. Copie o Client ID gerado\n\nNo manual de instalação há o passo a passo completo com imagens.');
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gestao_precisa_backup_${today()}.json`;
+  a.click();
+  showToast('✅ Backup exportado','ok');
+}
+
+function importData(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(confirm(`Importar dados do arquivo "${f.name}"?\nIsso SUBSTITUIRÁ todos os dados atuais.`)){
+        loadDBFromJSON(data);
+        saveToDrive(true);
+        renderAll();
+        showToast('✅ Dados importados','ok');
+      }
+    }catch(err){ showToast('Arquivo inválido','danger'); }
+  };
+  r.readAsText(f);
+  e.target.value='';
+}
+
+// ================================================================
+//  NAVIGATION
+// ================================================================
+function showTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='financeiro') renderFinanceiro();
+  if(name==='lancamentos') renderLancamentos();
+  if(name==='agenda'){ renderAgenda(); }
+  if(name==='impostos'){ loadImpostos(); renderNFMensal(); }
+}
+
+function renderAll(){
+  renderDashboard();
+  renderOS();
+  renderClientes();
+  renderImoveis();
+  renderFinanceiro();
+  renderLancamentos();
+  renderAgenda();
+  loadImpostos();
+  renderNFMensal();
+  simularNF();
+}
+
+// ================================================================
+//  DASHBOARD
+// ================================================================
+function renderDashboard(){
+  const os = DB.ordens_servico;
+  const emAberto  = os.filter(o=>!['Concluído','Cancelado'].includes(o.status)).length;
+  const concluidas = os.filter(o=>o.status==='Concluído').length;
+  const totalOS   = os.length;
+  const totalCli  = DB.clientes.length;
+  const vAberto   = os.filter(o=>!['Concluído','Cancelado'].includes(o.status))
+                      .reduce((s,o)=>s+(o.valor||0),0);
+  const vConcl    = os.filter(o=>o.status==='Concluído')
+                      .reduce((s,o)=>s+(o.valor||0),0);
+
+  const cards = [
+    {label:'OS em Aberto',    val:emAberto,          sub:'não concluídas',     cls:'blue'},
+    {label:'OS Concluídas',   val:concluidas,         sub:'total histórico',    cls:'green'},
+    {label:'Clientes',        val:totalCli,           sub:'cadastrados',        cls:'purple'},
+    {label:'Total de OS',     val:totalOS,            sub:'desde o início',     cls:'accent'},
+    {label:'Em aberto (R$)',  val:fmtR(vAberto),      sub:'a faturar',          cls:'yellow'},
+    {label:'Concluído (R$)',  val:fmtR(vConcl),       sub:'faturado',           cls:'green'},
+  ];
+
+  document.getElementById('dash-stats').innerHTML = cards.map(c=>`
+    <div class="stat-card ${c.cls}">
+      <div class="stat-val">${c.val}</div>
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-sub">${c.sub}</div>
+    </div>`).join('');
+
+  const recent = [...os].sort((a,b)=>b.id-a.id).slice(0,10);
+  document.getElementById('dash-os-tbody').innerHTML = recent.map(o=>osRow(o)).join('') ||
+    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Nenhuma OS cadastrada</td></tr>';
+}
+
+// ================================================================
+//  ORDENS DE SERVIÇO
+// ================================================================
+let _editId = null;
+let _editType = null;
+
+function statusBadge(s){
+  const cls = {
+    'Orçamento':'s-orcamento','Aprovado':'s-aprovado','Em andamento':'s-andamento',
+    'Aguardando cliente':'s-aguardando-cli','Aguardando CRI':'s-aguardando-cri',
+    'Aguardando SIGEF':'s-aguardando-sig','Aguardando INCRA':'s-aguardando-inc',
+    'Concluído':'s-concluido','Cancelado':'s-cancelado'
+  }[s]||'';
+  return `<span class="badge ${cls}">${s||'—'}</span>`;
+}
+
+function osRow(o, actions=false){
+  const cli = DB.clientes.find(c=>c.id===o.cliente_id);
+  const im  = DB.imoveis.find(i=>i.id===o.imovel_id);
+  const hoje = today();
+  const atrasado = o.data_prazo && o.data_prazo < hoje && !['Concluído','Cancelado'].includes(o.status);
+  const prazoTxt = o.data_prazo ? `<span style="${atrasado?'color:var(--danger);font-weight:700':''}">${fmtDate(o.data_prazo)}</span>` : '—';
+  const actionBtn = actions ? `<td class="row-actions">
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="editOS(${o.id});event.stopPropagation()" title="Editar">✏️</button>
+    <button class="btn btn-danger btn-sm btn-icon" onclick="deleteOS(${o.id});event.stopPropagation()" title="Excluir">🗑</button>
+  </td>` : '';
+  return `<tr onclick="${actions?'editOS('+o.id+')':''}">
+    <td class="text-accent fw700">${o.numero||'—'}</td>
+    <td>${cli?cli.nome:'—'}</td>
+    <td>${im?im.denominacao:'—'}</td>
+    <td>${o.tipo_servico||'—'}</td>
+    <td>${statusBadge(o.status)}</td>
+    <td>${prazoTxt}</td>
+    <td>${fmtR(o.valor)}</td>
+    ${actionBtn}
+  </tr>`;
+}
+
+function renderOS(){
+  const busca  = (document.getElementById('os-busca').value||'').toLowerCase();
+  const status = document.getElementById('os-status-filter').value;
+  let list = DB.ordens_servico.filter(o=>{
+    if(status && o.status !== status) return false;
+    if(busca){
+      const cli = DB.clientes.find(c=>c.id===o.cliente_id);
+      const im  = DB.imoveis.find(i=>i.id===o.imovel_id);
+      const hay = [(o.numero||''),(cli?cli.nome:''),(o.tipo_servico||''),(im?im.denominacao:'')].join(' ').toLowerCase();
+      if(!hay.includes(busca)) return false;
+    }
+    return true;
+  }).sort((a,b)=>b.id-a.id);
+
+  document.getElementById('os-tbody').innerHTML = list.map(o=>osRow(o,true)).join('');
+  document.getElementById('os-empty').classList.toggle('hidden', list.length > 0);
+}
+
+function openOSModal(id=null){
+  _editId = id; _editType='os';
+  const o = id ? DB.ordens_servico.find(x=>x.id===id) : null;
+  document.getElementById('modal-os-title').textContent = o ? `OS ${o.numero}` : 'Nova Ordem de Serviço';
+
+  // Populate client select
+  const cs = document.getElementById('os-cli-sel');
+  cs.innerHTML = '<option value="">Selecionar cliente...</option>' +
+    DB.clientes.map(c=>`<option value="${c.id}" ${o&&o.cliente_id===c.id?'selected':''}>${c.nome}</option>`).join('');
+
+  updateImovelSelect(o?o.imovel_id:null);
+
+  if(o){
+    document.getElementById('os-tipo-srv').value = o.tipo_servico||'';
+    document.getElementById('os-status-sel').value = o.status||'Orçamento';
+    document.getElementById('os-valor').value = o.valor||'';
+    document.getElementById('os-abertura').value = o.data_abertura||'';
+    document.getElementById('os-prazo').value = o.data_prazo||'';
+    document.getElementById('os-conclusao').value = o.data_conclusao||'';
+    document.getElementById('os-descr').value = o.descricao||'';
+    document.getElementById('os-obs').value = o.obs||'';
+    // Timeline
+    document.getElementById('os-atividades-section').classList.remove('hidden');
+    renderTimeline(id);
+  } else {
+    ['os-tipo-srv','os-status-sel','os-valor','os-abertura','os-prazo','os-conclusao','os-descr','os-obs']
+      .forEach(f=>{ const el=document.getElementById(f); if(el) el.value=f==='os-abertura'?today():''; });
+    document.getElementById('os-status-sel').value='Orçamento';
+    document.getElementById('os-abertura').value=today();
+    document.getElementById('os-atividades-section').classList.add('hidden');
+  }
+  document.getElementById('modal-os').classList.remove('hidden');
+}
+
+function updateImovelSelect(selectedId=null){
+  const cliId = parseInt(document.getElementById('os-cli-sel').value)||null;
+  const ims = cliId ? DB.imoveis.filter(i=>i.cliente_id===cliId) : DB.imoveis;
+  const is = document.getElementById('os-im-sel');
+  is.innerHTML = '<option value="">Selecionar imóvel...</option>' +
+    ims.map(i=>`<option value="${i.id}" ${i.id===selectedId?'selected':''}>${i.denominacao} (${i.municipio||''})</option>`).join('');
+}
+
+function renderTimeline(osId){
+  const atv = DB.atividades.filter(a=>a.os_id===osId).sort((a,b)=>b.id-a.id);
+  document.getElementById('os-tl-list').innerHTML = atv.length ?
+    atv.map(a=>`<div class="tl-item"><div class="tl-date">${fmtDate(a.data)}</div><div class="tl-text">${a.descricao}</div></div>`).join('')
+    : '<div style="color:var(--muted);font-size:11px;padding:8px 0;">Nenhuma atividade registrada</div>';
+}
+
+function addAtividade(){
+  const txt = document.getElementById('os-atv-txt').value.trim();
+  if(!txt || !_editId) return;
+  DB.atividades.push({ id:newId('atv'), os_id:_editId, descricao:txt, data:today() });
+  document.getElementById('os-atv-txt').value='';
+  renderTimeline(_editId);
+  saveToDrive();
+}
+
+function editOS(id){ openOSModal(id); }
+
+function saveOS(){
+  const cliId = parseInt(document.getElementById('os-cli-sel').value)||null;
+  if(!cliId){ showToast('Selecione um cliente','warn'); return; }
+  const data = {
+    cliente_id: cliId,
+    imovel_id: parseInt(document.getElementById('os-im-sel').value)||null,
+    tipo_servico: document.getElementById('os-tipo-srv').value,
+    status: document.getElementById('os-status-sel').value,
+    valor: parseFloat(document.getElementById('os-valor').value)||null,
+    data_abertura: document.getElementById('os-abertura').value,
+    data_prazo: document.getElementById('os-prazo').value,
+    data_conclusao: document.getElementById('os-conclusao').value,
+    descricao: document.getElementById('os-descr').value,
+    obs: document.getElementById('os-obs').value
+  };
+  if(_editId){
+    const os = DB.ordens_servico.find(o=>o.id===_editId);
+    if(os) Object.assign(os, data);
+  } else {
+    const ano = new Date().getFullYear();
+    const seq = DB.ordens_servico.filter(o=>o.numero&&o.numero.startsWith('OS'+ano)).length+1;
+    data.id = newId('os');
+    data.numero = `OS${ano}${String(seq).padStart(4,'0')}`;
+    DB.ordens_servico.push(data);
+  }
+  closeModal('modal-os');
+  saveToDrive();
+  renderOS();
+  renderDashboard();
+  showToast('OS salva ✅','ok');
+}
+
+function deleteOS(id){
+  if(!confirm('Excluir esta OS? Esta ação não pode ser desfeita.')) return;
+  DB.ordens_servico = DB.ordens_servico.filter(o=>o.id!==id);
+  DB.atividades = DB.atividades.filter(a=>a.os_id!==id);
+  DB.pagamentos = DB.pagamentos.filter(p=>p.os_id!==id);
+  saveToDrive();
+  renderOS();
+  renderDashboard();
+  showToast('OS excluída','info');
+}
+
+// ================================================================
+//  CLIENTES
+// ================================================================
+function renderClientes(){
+  const busca = (document.getElementById('cli-busca').value||'').toLowerCase();
+  const list = DB.clientes.filter(c=>{
+    if(!busca) return true;
+    return [(c.nome||''),(c.cpf_cnpj||''),(c.cidade_uf||'')].join(' ').toLowerCase().includes(busca);
+  }).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+
+  document.getElementById('cli-tbody').innerHTML = list.map(c=>`<tr>
+    <td class="fw700">${c.nome}</td>
+    <td>${c.cpf_cnpj||'—'}</td>
+    <td>${c.telefone||'—'}</td>
+    <td>${c.email||'—'}</td>
+    <td>${c.cidade_uf||'—'}</td>
+    <td class="row-actions">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="editCliente(${c.id})">✏️</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCliente(${c.id})">🗑</button>
+    </td>
+  </tr>`).join('');
+  document.getElementById('cli-empty').classList.toggle('hidden', list.length > 0);
+}
+
+function openClienteModal(id=null){
+  _editId = id; _editType='cli';
+  const c = id ? DB.clientes.find(x=>x.id===id) : null;
+  document.getElementById('modal-cli-title').textContent = c ? 'Editar Cliente' : 'Novo Cliente';
+  ['nome','cpf','tel','email','end','cidade','obs'].forEach((f,i)=>{
+    const keys=['nome','cpf_cnpj','telefone','email','endereco','cidade_uf','obs'];
+    const el=document.getElementById('cli-'+f);
+    if(el) el.value = c ? (c[keys[i]]||'') : '';
+  });
+  document.getElementById('modal-cli').classList.remove('hidden');
+}
+
+function editCliente(id){ openClienteModal(id); }
+
+function saveCliente(){
+  const nome = document.getElementById('cli-nome').value.trim();
+  if(!nome){ showToast('Nome obrigatório','warn'); return; }
+  const data = {
+    nome, cpf_cnpj:document.getElementById('cli-cpf').value,
+    telefone:document.getElementById('cli-tel').value,
+    email:document.getElementById('cli-email').value,
+    endereco:document.getElementById('cli-end').value,
+    cidade_uf:document.getElementById('cli-cidade').value,
+    obs:document.getElementById('cli-obs').value
+  };
+  if(_editId){ const c=DB.clientes.find(x=>x.id===_editId); if(c) Object.assign(c,data); }
+  else { data.id=newId('clientes'); DB.clientes.push(data); }
+  closeModal('modal-cli');
+  saveToDrive();
+  renderClientes();
+  showToast('Cliente salvo ✅','ok');
+}
+
+function deleteCliente(id){
+  if(!confirm('Excluir cliente?')) return;
+  DB.clientes = DB.clientes.filter(c=>c.id!==id);
+  saveToDrive(); renderClientes();
+}
+
+// ================================================================
+//  IMÓVEIS
+// ================================================================
+function renderImoveis(){
+  const busca = (document.getElementById('im-busca').value||'').toLowerCase();
+  const list = DB.imoveis.filter(i=>{
+    if(!busca) return true;
+    return [(i.denominacao||''),(i.municipio||''),(i.matricula||'')].join(' ').toLowerCase().includes(busca);
+  }).sort((a,b)=>(a.denominacao||'').localeCompare(b.denominacao||''));
+
+  document.getElementById('im-tbody').innerHTML = list.map(i=>{
+    const cli=DB.clientes.find(c=>c.id===i.cliente_id);
+    return `<tr>
+      <td class="fw700">${i.denominacao}</td>
+      <td>${cli?cli.nome:'—'}</td>
+      <td>${i.municipio||'—'}</td>
+      <td>${i.area_ha ? i.area_ha.toFixed(4)+' ha' : '—'}</td>
+      <td>${i.matricula||'—'}</td>
+      <td>${i.tipo||'—'}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editImovel(${i.id})">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteImovel(${i.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('im-empty').classList.toggle('hidden', list.length > 0);
+}
+
+function openImovelModal(id=null){
+  _editId = id; _editType='im';
+  const im = id ? DB.imoveis.find(x=>x.id===id) : null;
+  document.getElementById('modal-im-title').textContent = im ? 'Editar Imóvel' : 'Novo Imóvel';
+  const cs = document.getElementById('im-cli-sel');
+  cs.innerHTML = '<option value="">Selecionar cliente...</option>' +
+    DB.clientes.map(c=>`<option value="${c.id}" ${im&&im.cliente_id===c.id?'selected':''}>${c.nome}</option>`).join('');
+  ['denom','mun','area','mat','cri','sigef','obs'].forEach((f,i)=>{
+    const keys=['denominacao','municipio','area_ha','matricula','cri','sigef_codigo','obs'];
+    const el=document.getElementById('im-'+f);
+    if(el) el.value = im ? (im[keys[i]]||'') : '';
+  });
+  if(im) document.getElementById('im-tipo').value = im.tipo||'Rural';
+  document.getElementById('modal-im').classList.remove('hidden');
+}
+
+function editImovel(id){ openImovelModal(id); }
+
+function saveImovel(){
+  const den = document.getElementById('im-denom').value.trim();
+  if(!den){ showToast('Denominação obrigatória','warn'); return; }
+  const data = {
+    denominacao:den,
+    cliente_id:parseInt(document.getElementById('im-cli-sel').value)||null,
+    municipio:document.getElementById('im-mun').value,
+    area_ha:parseFloat(document.getElementById('im-area').value)||null,
+    tipo:document.getElementById('im-tipo').value,
+    matricula:document.getElementById('im-mat').value,
+    cri:document.getElementById('im-cri').value,
+    sigef_codigo:document.getElementById('im-sigef').value,
+    obs:document.getElementById('im-obs').value
+  };
+  if(_editId){ const im=DB.imoveis.find(x=>x.id===_editId); if(im) Object.assign(im,data); }
+  else { data.id=newId('imoveis'); DB.imoveis.push(data); }
+  closeModal('modal-im');
+  saveToDrive();
+  renderImoveis();
+  showToast('Imóvel salvo ✅','ok');
+}
+
+function deleteImovel(id){
+  if(!confirm('Excluir imóvel?')) return;
+  DB.imoveis = DB.imoveis.filter(i=>i.id!==id);
+  saveToDrive(); renderImoveis();
+}
+
+// ================================================================
+//  FINANCEIRO
+// ================================================================
+function renderFinanceiro(){
+  const pags = DB.pagamentos;
+  const hoje = today();
+  const rec  = pags.filter(p=>p.data_pagamento).reduce((s,p)=>s+(p.valor||0),0);
+  const pend = pags.filter(p=>!p.data_pagamento).reduce((s,p)=>s+(p.valor||0),0);
+  const venc = pags.filter(p=>!p.data_pagamento && p.data_vencimento && p.data_vencimento < hoje)
+                   .reduce((s,p)=>s+(p.valor||0),0);
+  const totalOS = DB.ordens_servico.reduce((s,o)=>s+(o.valor||0),0);
+  const tnf = pags.filter(p=>p.nf_valor).reduce((s,p)=>s+(p.nf_valor||0),0);
+
+  document.getElementById('fin-stats').innerHTML = [
+    {label:'Total Orçado',     val:fmtR(totalOS), sub:'soma de todas OS', cls:'accent'},
+    {label:'Recebido',         val:fmtR(rec),     sub:'pagamentos confirmados', cls:'green'},
+    {label:'Pendente',         val:fmtR(pend),    sub:'a receber', cls:'blue'},
+    {label:'Vencido',          val:fmtR(venc),    sub:'atrasados', cls:'danger'},
+    {label:'Total NF Emitida', val:fmtR(tnf),     sub:'notas fiscais', cls:'purple'},
+  ].map(c=>`<div class="stat-card ${c.cls}">
+    <div class="stat-val">${c.val}</div>
+    <div class="stat-label">${c.label}</div>
+    <div class="stat-sub">${c.sub}</div>
+  </div>`).join('');
+
+  const recent = [...pags].sort((a,b)=>b.id-a.id).slice(0,15);
+  document.getElementById('fin-tbody').innerHTML = recent.map(p=>pagRow(p)).join('') ||
+    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nenhum lançamento</td></tr>';
+}
+
+function pagRow(p, actions=false){
+  const os = DB.ordens_servico.find(o=>o.id===p.os_id);
+  const cli = os ? DB.clientes.find(c=>c.id===os.cliente_id) : null;
+  const hoje = today();
+  const vencido = !p.data_pagamento && p.data_vencimento && p.data_vencimento < hoje;
+  const act = actions ? `<td class="row-actions">
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="editPagto(${p.id});event.stopPropagation()">✏️</button>
+    <button class="btn btn-danger btn-sm btn-icon" onclick="deletePagto(${p.id});event.stopPropagation()">🗑</button>
+  </td>` : '';
+  return `<tr>
+    <td class="text-accent fw700">${os?os.numero:'—'}</td>
+    <td>${cli?cli.nome:'—'}</td>
+    <td>${p.tipo||'Recebimento'}</td>
+    <td>${fmtR(p.valor)}</td>
+    <td style="${vencido?'color:var(--danger);font-weight:700':''}">${fmtDate(p.data_vencimento)||'—'}</td>
+    <td style="${p.data_pagamento?'color:var(--green)':''}">${fmtDate(p.data_pagamento)||'<span class="text-muted">Pendente</span>'}</td>
+    <td>${p.forma||'—'}</td>
+    <td>${p.nf_numero||'—'}${act}
+  </tr>`;
+}
+
+function renderLancamentos(){
+  const busca  = (document.getElementById('lan-busca').value||'').toLowerCase();
+  const filter = document.getElementById('lan-filter').value;
+  const hoje   = today();
+  let list = DB.pagamentos.filter(p=>{
+    const os  = DB.ordens_servico.find(o=>o.id===p.os_id);
+    const cli = os ? DB.clientes.find(c=>c.id===os.cliente_id) : null;
+    if(busca){
+      const hay = [(os?os.numero:''),(cli?cli.nome:'')].join(' ').toLowerCase();
+      if(!hay.includes(busca)) return false;
+    }
+    if(filter==='pago'    && !p.data_pagamento) return false;
+    if(filter==='pendente'&& p.data_pagamento)  return false;
+    if(filter==='vencido' && (p.data_pagamento || !p.data_vencimento || p.data_vencimento >= hoje)) return false;
+    return true;
+  }).sort((a,b)=>b.id-a.id);
+
+  document.getElementById('lan-tbody').innerHTML = list.map(p=>pagRow(p,true)).join('');
+  document.getElementById('lan-empty').classList.toggle('hidden', list.length > 0);
+}
+
+function openPagtoModal(id=null){
+  _editId=id; _editType='pag';
+  const p = id ? DB.pagamentos.find(x=>x.id===id) : null;
+  document.getElementById('modal-pag-title').textContent = p ? 'Editar Lançamento' : 'Novo Lançamento';
+  const os = document.getElementById('pag-os-sel');
+  os.innerHTML = '<option value="">Selecionar OS...</option>' +
+    DB.ordens_servico.map(o=>{
+      const cli=DB.clientes.find(c=>c.id===o.cliente_id);
+      return `<option value="${o.id}" ${p&&p.os_id===o.id?'selected':''}>${o.numero} — ${cli?cli.nome:'—'}</option>`;
+    }).join('');
+  if(p){
+    document.getElementById('pag-tipo').value = p.tipo||'Recebimento';
+    document.getElementById('pag-forma').value = p.forma||'PIX';
+    document.getElementById('pag-valor').value = p.valor||'';
+    document.getElementById('pag-vcto').value = p.data_vencimento||'';
+    document.getElementById('pag-pgto').value = p.data_pagamento||'';
+    document.getElementById('pag-nf-num').value = p.nf_numero||'';
+    document.getElementById('pag-nf-val').value = p.nf_valor||'';
+    document.getElementById('pag-nf-data').value = p.nf_data||'';
+    document.getElementById('pag-iss').value = p.iss_aliq||3.0;
+    document.getElementById('pag-obs').value = p.obs||'';
+  } else {
+    ['pag-tipo','pag-forma','pag-valor','pag-vcto','pag-pgto','pag-nf-num','pag-nf-val','pag-nf-data','pag-obs']
+      .forEach(f=>{const el=document.getElementById(f);if(el){el.value=f==='pag-tipo'?'Recebimento':f==='pag-forma'?'PIX':f==='pag-iss'?'3.0':''}});
+    document.getElementById('pag-iss').value='3.0';
+    document.getElementById('pag-vcto').value=today();
+  }
+  document.getElementById('modal-pag').classList.remove('hidden');
+}
+
+function editPagto(id){ openPagtoModal(id); }
+
+function savePagto(){
+  const osId = parseInt(document.getElementById('pag-os-sel').value)||null;
+  if(!osId){ showToast('Selecione uma OS','warn'); return; }
+  const data = {
+    os_id:osId, tipo:document.getElementById('pag-tipo').value,
+    forma:document.getElementById('pag-forma').value,
+    valor:parseFloat(document.getElementById('pag-valor').value)||0,
+    data_vencimento:document.getElementById('pag-vcto').value,
+    data_pagamento:document.getElementById('pag-pgto').value||null,
+    nf_numero:document.getElementById('pag-nf-num').value||null,
+    nf_valor:parseFloat(document.getElementById('pag-nf-val').value)||null,
+    nf_data:document.getElementById('pag-nf-data').value||null,
+    iss_aliq:parseFloat(document.getElementById('pag-iss').value)||3.0,
+    obs:document.getElementById('pag-obs').value
+  };
+  if(_editId){ const p=DB.pagamentos.find(x=>x.id===_editId); if(p) Object.assign(p,data); }
+  else { data.id=newId('pag'); DB.pagamentos.push(data); }
+  closeModal('modal-pag');
+  saveToDrive();
+  renderLancamentos();
+  renderFinanceiro();
+  showToast('Lançamento salvo ✅','ok');
+}
+
+function deletePagto(id){
+  if(!confirm('Excluir lançamento?')) return;
+  DB.pagamentos = DB.pagamentos.filter(p=>p.id!==id);
+  saveToDrive(); renderLancamentos(); renderFinanceiro();
+}
+
+// ================================================================
+//  AGENDA
+// ================================================================
+let calAno = new Date().getFullYear();
+let calMes = new Date().getMonth()+1;
+let calDiaSel = today();
+
+const CORES_TIPO = {
+  'Visita de campo':'#4fa3e0','Levantamento topográfico':'#e8773a',
+  'Reunião com cliente':'#b06ee8','Entrega de documentos':'#3dd68c',
+  'Protocolo SIGEF/INCRA':'#4db6ac','Prazo legal':'#e05a5a',
+  'Audiência':'#8891a8','Outro':'#5a6278'
+};
+
+function calNav(dir){
+  calMes += dir;
+  if(calMes > 12){ calMes=1; calAno++; }
+  if(calMes < 1) { calMes=12; calAno--; }
+  renderAgenda();
+}
+
+function renderAgenda(){
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-title').textContent = `${meses[calMes-1]} ${calAno}`;
+
+  const grid = document.getElementById('cal-grid');
+  const dow  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const hoje = today();
+
+  // Events this month
+  const d1 = `${calAno}-${String(calMes).padStart(2,'0')}-01`;
+  const d2 = calMes===12 ? `${calAno+1}-01-01` : `${calAno}-${String(calMes+1).padStart(2,'0')}-01`;
+  const evs = DB.agenda.filter(e=>e.data_inicio>=d1 && e.data_inicio<d2);
+  const diasEvt = {};
+  evs.forEach(e=>{
+    if(!diasEvt[e.data_inicio]) diasEvt[e.data_inicio]={has:true,overdue:false};
+    if(!e.concluido && e.data_inicio < hoje) diasEvt[e.data_inicio].overdue=true;
+  });
+
+  // Build grid
+  const primeiro = new Date(calAno, calMes-1, 1).getDay();
+  const diasMes  = new Date(calAno, calMes, 0).getDate();
+  const mesAnt   = calMes===1 ? 12 : calMes-1;
+  const anoAnt   = calMes===1 ? calAno-1 : calAno;
+  const diasMesAnt = new Date(anoAnt, mesAnt, 0).getDate();
+
+  let html = dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  for(let i=0;i<primeiro;i++){
+    const d = diasMesAnt - primeiro + 1 + i;
+    html += `<div class="cal-day other-month">${d}</div>`;
+  }
+  for(let d=1; d<=diasMes; d++){
+    const ds = `${calAno}-${String(calMes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ev = diasEvt[ds];
+    const cls = [
+      'cal-day',
+      ds===hoje?'today':'',
+      ds===calDiaSel?'selected':'',
+      ev?'has-events':'',
+      ev&&ev.overdue?'has-overdue':''
+    ].join(' ');
+    html += `<div class="${cls}" onclick="selectDay('${ds}')">${d}</div>`;
+  }
+  const total = primeiro + diasMes;
+  const resto = total%7 === 0 ? 0 : 7-(total%7);
+  for(let i=1;i<=resto;i++) html+=`<div class="cal-day other-month">${i}</div>`;
+
+  grid.innerHTML = html;
+
+  renderDayEvents();
+  renderMesEvents();
+  populateAgendaOSSelect();
+}
+
+function selectDay(ds){
+  calDiaSel = ds;
+  renderAgenda();
+}
+
+function renderDayEvents(){
+  const title = document.getElementById('events-day-title');
+  const list  = document.getElementById('events-day-list');
+  const [y,m,d] = calDiaSel.split('-');
+  title.textContent = `${d}/${m}/${y}`;
+  const evs = DB.agenda.filter(e=>e.data_inicio===calDiaSel).sort((a,b)=>(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+  if(!evs.length){
+    list.innerHTML = '<div class="empty" style="padding:20px 0;"><div>Nenhum evento neste dia</div></div>';
+    return;
+  }
+  list.innerHTML = evs.map(e=>{
+    const os = e.os_id ? DB.ordens_servico.find(o=>o.id===e.os_id) : null;
+    const cor = CORES_TIPO[e.tipo]||'#5a6278';
+    return `<div class="event-item ${e.concluido?'done':''}" onclick="editAgenda(${e.id})">
+      <div class="event-dot" style="background:${cor}"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+          <span class="event-time">${e.hora_inicio||'—'}</span>
+          <span class="event-tipo-badge">${e.tipo}</span>
+        </div>
+        <div class="event-title">${e.titulo}</div>
+        ${os?`<div class="event-sub">OS ${os.numero}</div>`:''}
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="toggleConcluido(${e.id});event.stopPropagation()">
+          ${e.concluido?'↩':'✅'}
+        </button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAgenda(${e.id});event.stopPropagation()">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMesEvents(){
+  const d1 = `${calAno}-${String(calMes).padStart(2,'0')}-01`;
+  const d2 = calMes===12?`${calAno+1}-01-01`:`${calAno}-${String(calMes+1).padStart(2,'0')}-01`;
+  const evs = DB.agenda.filter(e=>e.data_inicio>=d1&&e.data_inicio<d2)
+    .sort((a,b)=>a.data_inicio.localeCompare(b.data_inicio)||(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+  const list = document.getElementById('events-mes-list');
+  if(!evs.length){
+    list.innerHTML='<div style="color:var(--muted);font-size:11px;padding:12px;">Nenhum evento no mês</div>';
+    return;
+  }
+  list.innerHTML = evs.map(e=>{
+    const [,m,d] = e.data_inicio.split('-');
+    const cor = CORES_TIPO[e.tipo]||'#5a6278';
+    return `<div class="event-item ${e.concluido?'done':''}" onclick="selectDay('${e.data_inicio}');editAgenda(${e.id})">
+      <div class="event-dot" style="background:${cor}"></div>
+      <div style="flex:1">
+        <div class="event-time">${d}/${m} ${e.hora_inicio||''}</div>
+        <div class="event-title">${e.titulo}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function populateAgendaOSSelect(){
+  const sel = document.getElementById('ag-os-sel');
+  sel.innerHTML = '<option value="">Nenhuma</option>' +
+    DB.ordens_servico.map(o=>`<option value="${o.id}">${o.numero}</option>`).join('');
+}
+
+function openAgendaModal(id=null){
+  _editId=id; _editType='ag';
+  const e = id ? DB.agenda.find(x=>x.id===id) : null;
+  document.getElementById('modal-agenda-title').textContent = e ? 'Editar Evento' : 'Novo Evento';
+  populateAgendaOSSelect();
+  if(e){
+    document.getElementById('ag-titulo').value = e.titulo||'';
+    document.getElementById('ag-tipo').value = e.tipo||'Visita de campo';
+    document.getElementById('ag-os-sel').value = e.os_id||'';
+    document.getElementById('ag-data-ini').value = e.data_inicio||'';
+    document.getElementById('ag-data-fim').value = e.data_fim||'';
+    document.getElementById('ag-hora-ini').value = e.hora_inicio||'';
+    document.getElementById('ag-hora-fim').value = e.hora_fim||'';
+    document.getElementById('ag-desc').value = e.descricao||'';
+    document.getElementById('ag-conc').value = String(e.concluido||0);
+  } else {
+    document.getElementById('ag-titulo').value='';
+    document.getElementById('ag-tipo').value='Visita de campo';
+    document.getElementById('ag-os-sel').value='';
+    document.getElementById('ag-data-ini').value=calDiaSel;
+    document.getElementById('ag-data-fim').value=calDiaSel;
+    document.getElementById('ag-hora-ini').value='08:00';
+    document.getElementById('ag-hora-fim').value='';
+    document.getElementById('ag-desc').value='';
+    document.getElementById('ag-conc').value='0';
+  }
+  document.getElementById('modal-agenda').classList.remove('hidden');
+}
+
+function editAgenda(id){ openAgendaModal(id); }
+
+function saveAgenda(){
+  const titulo = document.getElementById('ag-titulo').value.trim();
+  if(!titulo){ showToast('Título obrigatório','warn'); return; }
+  const data = {
+    titulo, tipo:document.getElementById('ag-tipo').value,
+    os_id:parseInt(document.getElementById('ag-os-sel').value)||null,
+    data_inicio:document.getElementById('ag-data-ini').value,
+    data_fim:document.getElementById('ag-data-fim').value||document.getElementById('ag-data-ini').value,
+    hora_inicio:document.getElementById('ag-hora-ini').value,
+    hora_fim:document.getElementById('ag-hora-fim').value,
+    descricao:document.getElementById('ag-desc').value,
+    concluido:parseInt(document.getElementById('ag-conc').value)||0
+  };
+  if(_editId){ const ev=DB.agenda.find(x=>x.id===_editId); if(ev) Object.assign(ev,data); }
+  else { data.id=newId('ag'); DB.agenda.push(data); }
+  closeModal('modal-agenda');
+  saveToDrive();
+  renderAgenda();
+  showToast('Evento salvo ✅','ok');
+}
+
+function toggleConcluido(id){
+  const ev=DB.agenda.find(e=>e.id===id);
+  if(ev){ ev.concluido = ev.concluido?0:1; saveToDrive(); renderAgenda(); }
+}
+
+function deleteAgenda(id){
+  if(!confirm('Excluir evento?')) return;
+  DB.agenda=DB.agenda.filter(e=>e.id!==id);
+  saveToDrive(); renderAgenda();
+}
+
+// ================================================================
+//  IMPOSTOS / NF
+// ================================================================
+function loadImpostos(){
+  const cfg = DB.config_impostos;
+  document.getElementById('imp-regime').value = cfg.regime||'Simples Nacional';
+  document.getElementById('imp-iss').value    = cfg.iss_aliq||3.0;
+  document.getElementById('imp-irpj').value   = cfg.irpj_aliq||4.8;
+  document.getElementById('imp-cofins').value = cfg.cofins_aliq||0.0;
+  document.getElementById('imp-pis').value    = cfg.pis_aliq||0.0;
+  document.getElementById('imp-csll').value   = cfg.csll_aliq||0.0;
+  simularNF();
+}
+
+function saveImpostos(){
+  DB.config_impostos = {
+    regime:document.getElementById('imp-regime').value,
+    iss_aliq:parseFloat(document.getElementById('imp-iss').value)||0,
+    irpj_aliq:parseFloat(document.getElementById('imp-irpj').value)||0,
+    cofins_aliq:parseFloat(document.getElementById('imp-cofins').value)||0,
+    pis_aliq:parseFloat(document.getElementById('imp-pis').value)||0,
+    csll_aliq:parseFloat(document.getElementById('imp-csll').value)||0
+  };
+  saveToDrive();
+  showToast('Alíquotas salvas ✅','ok');
+}
+
+function simularNF(){
+  const val   = parseFloat(document.getElementById('imp-sim-val').value)||0;
+  const iss   = parseFloat(document.getElementById('imp-iss').value)||0;
+  const irpj  = parseFloat(document.getElementById('imp-irpj').value)||0;
+  const cof   = parseFloat(document.getElementById('imp-cofins').value)||0;
+  const pis   = parseFloat(document.getElementById('imp-pis').value)||0;
+  const csll  = parseFloat(document.getElementById('imp-csll').value)||0;
+  const vIss  = val*iss/100, vIrpj=val*irpj/100, vCof=val*cof/100, vPis=val*pis/100, vCsll=val*csll/100;
+  const total = vIss+vIrpj+vCof+vPis+vCsll;
+  const liq   = val-total;
+
+  document.getElementById('imp-sim-result').innerHTML = val<=0 ? '' : `
+    <div class="tax-row"><span class="lbl">Valor bruto NF</span><span class="val">${fmtR(val)}</span></div>
+    <div class="tax-row"><span class="lbl">ISS (${iss}%)</span><span class="val">− ${fmtR(vIss)}</span></div>
+    <div class="tax-row"><span class="lbl">IRPJ/Simples (${irpj}%)</span><span class="val">− ${fmtR(vIrpj)}</span></div>
+    ${cof>0?`<div class="tax-row"><span class="lbl">COFINS (${cof}%)</span><span class="val">− ${fmtR(vCof)}</span></div>`:''}
+    ${pis>0?`<div class="tax-row"><span class="lbl">PIS (${pis}%)</span><span class="val">− ${fmtR(vPis)}</span></div>`:''}
+    ${csll>0?`<div class="tax-row"><span class="lbl">CSLL (${csll}%)</span><span class="val">− ${fmtR(vCsll)}</span></div>`:''}
+    <div class="tax-row"><span class="lbl">Total impostos</span><span class="val text-danger">− ${fmtR(total)}</span></div>
+    <div class="tax-row total"><span class="lbl">Líquido estimado</span><span class="val">${fmtR(liq)}</span></div>`;
+}
+
+function renderNFMensal(){
+  const groups = {};
+  DB.pagamentos.filter(p=>p.nf_numero && p.nf_data).forEach(p=>{
+    const mes = p.nf_data.slice(0,7);
+    if(!groups[mes]) groups[mes]={qtd:0,total:0,iss_sum:0,irpj_sum:0,cnt:0};
+    groups[mes].qtd++;
+    groups[mes].total += p.nf_valor||0;
+    groups[mes].iss_sum += p.iss_aliq||3;
+    groups[mes].cnt++;
+  });
+  const meses = Object.keys(groups).sort().reverse().slice(0,24);
+  const cfg = DB.config_impostos;
+  document.getElementById('nf-mensal-tbody').innerHTML = meses.map(m=>{
+    const g = groups[m];
+    const iss_med = g.iss_sum/g.cnt;
+    const taxa = g.total*(iss_med+cfg.irpj_aliq+cfg.cofins_aliq+cfg.pis_aliq+cfg.csll_aliq)/100;
+    const [y,mo] = m.split('-');
+    const mNames=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return `<tr>
+      <td>${mNames[parseInt(mo)-1]}/${y}</td>
+      <td>${g.qtd}</td>
+      <td>${fmtR(g.total)}</td>
+      <td class="text-danger">− ${fmtR(taxa)}</td>
+      <td class="text-green">${fmtR(g.total-taxa)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Nenhuma NF emitida</td></tr>';
+}
+
+// ================================================================
+//  CALCULADORA
+// ================================================================
+let _lastCalcFn = null;
+
+function showCalc(name){
+  document.querySelectorAll('.calc-nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.calc===name));
+  document.querySelectorAll('.calc-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('calc-'+name).classList.add('active');
+  _lastCalcFn = null;
+}
+
+function recalcCalc(){ if(_lastCalcFn) _lastCalcFn(); }
+
+// ART CREA-MG 2026
+const ART = [
+  {max:15000,taxa:108.39},{max:30000,taxa:190.42},{max:60000,taxa:285.59},
+  {max:150000,taxa:476},{max:300000,taxa:952},{max:600000,taxa:1522},
+  {max:1500000,taxa:2854},{max:Infinity,taxa:4560}
+];
+function getART(v){ return (ART.find(a=>v<=a.max)||ART[ART.length-1]).taxa; }
+
+function renderCalcResult(containerId, min, mid, max, rows){
+  const el = document.getElementById(containerId);
+  if(!mid||mid<=0){el.innerHTML='';return;}
+  const useTax = document.getElementById('calc-tax').checked;
+  const useArt = document.getElementById('calc-art').checked;
+  const tax = useTax ? 0.06 : 0;
+  const art = useArt ? getART(mid) : 0;
+  const totalMid = mid*(1+tax)+art;
+  const totalMin = min*(1+tax)+art;
+  const totalMax = max*(1+tax)+art;
+
+  el.innerHTML = `<div class="result-box">
+    <div class="result-range">
+      <div class="rv"><span>Mínimo</span><div class="v min">${fmtR(min)}</div></div>
+      <div style="color:var(--border);font-size:18px;padding-bottom:6px">—</div>
+      <div class="rv"><span>Referencial</span><div class="v mid">${fmtR(mid)}</div></div>
+      <div style="color:var(--border);font-size:18px;padding-bottom:6px">—</div>
+      <div class="rv"><span>Máximo</span><div class="v max">${fmtR(max)}</div></div>
+    </div>
+    <div class="result-rows">
+      ${rows.map(r=>`<div class="rrow"><span class="rl">${r[0]}</span><span class="rv2">${r[1]}</span></div>`).join('')}
+      <div class="rrow subtotal"><span>Subtotal</span><span>${fmtR(mid)}</span></div>
+      ${useTax?`<div class="rrow"><span class="rl">Impostos (6%)</span><span class="rv2 text-danger">+ ${fmtR(mid*tax)}</span></div>`:''}
+      ${useArt?`<div class="rrow"><span class="rl">ART CREA-MG 2026</span><span class="rv2 text-blue">+ ${fmtR(art)}</span></div>`:''}
+      ${(useTax||useArt)?`<div class="rrow total"><span>TOTAL COM ENCARGOS</span><span>${fmtR(totalMid)}</span></div>`:''}
+      ${(useTax||useArt)?`<div style="font-size:9px;color:var(--muted);margin-top:6px;">
+        Faixa: <span style="color:var(--blue)">${fmtR(totalMin)}</span> — <span style="color:var(--green);font-weight:700">${fmtR(totalMid)}</span> — <span style="color:var(--accent2)">${fmtR(totalMax)}</span>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+// Calculadoras
+function calcGeo(){
+  _lastCalcFn = calcGeo;
+  const area = parseFloat(document.getElementById('cg-area').value)||0;
+  const vert = parseFloat(document.getElementById('cg-vert').value)||0;
+  const dist = parseFloat(document.getElementById('cg-dist').value)||0;
+  const compl = parseFloat(document.getElementById('cg-compl').value)||1;
+  const tipo = parseFloat(document.getElementById('cg-tipo').value)||1;
+  const cart = parseFloat(document.getElementById('cg-cart').value)||0;
+  if(!area) return;
+  const base = Math.max(2800, area*320 + vert*90 + mob(dist));
+  const mid  = base*compl*tipo + cart;
+  renderCalcResult('res-geo', mid*.55, mid, mid*1.6, [
+    ['Levant. + memorial base', fmtR(Math.max(2800, area*320))],
+    ['Vértices ('+vert+')', fmtR(vert*90)],
+    ['Mobilização', fmtR(mob(dist))],
+    ['Complexidade', 'fator ×'+compl],
+    ['Tipo de imóvel', 'fator ×'+tipo],
+    ...(cart>0?[['Averbação cartório', fmtR(cart)]]:[] )
+  ]);
+}
+
+function calcPa(){
+  _lastCalcFn = calcPa;
+  const area = parseFloat(document.getElementById('cp-area').value)||0;
+  const fin  = parseFloat(document.getElementById('cp-fin').value)||1;
+  const tipo = parseFloat(document.getElementById('cp-tipo').value)||1;
+  const dist = parseFloat(document.getElementById('cp-dist').value)||0;
+  if(!area) return;
+  const base = Math.max(1800, area*2400);
+  const mid  = base*fin*tipo + mob(dist);
+  renderCalcResult('res-pa', mid*.6, mid, mid*1.8, [
+    ['Levant. planialt. base', fmtR(Math.max(1800,area*2400))],
+    ['Finalidade', 'fator ×'+fin],
+    ['Tipo de área', 'fator ×'+tipo],
+    ['Mobilização', fmtR(mob(dist))]
+  ]);
+}
+
+function calcBat(){
+  _lastCalcFn = calcBat;
+  const area = parseFloat(document.getElementById('cb-area').value)||0;
+  const tech = parseFloat(document.getElementById('cb-tech').value)||1;
+  const entr = parseFloat(document.getElementById('cb-entr').value)||1;
+  const dist = parseFloat(document.getElementById('cb-dist').value)||0;
+  const acs  = parseFloat(document.getElementById('cb-acs').value)||1;
+  const mac  = parseFloat(document.getElementById('cb-mac').value)||1;
+  if(!area) return;
+  const base = Math.max(3500, area*650);
+  const mid  = base*tech*entr*acs*mac + mob(dist);
+  renderCalcResult('res-bat', mid*.55, mid, mid*1.7, [
+    ['Levant. batimétrico base', fmtR(Math.max(3500,area*650))],
+    ['Tecnologia', 'fator ×'+tech],
+    ['Entregáveis', 'fator ×'+entr],
+    ['Acesso', 'fator ×'+acs],
+    ['Macrófitas', 'fator ×'+mac],
+    ['Mobilização', fmtR(mob(dist))]
+  ]);
+}
+
+function calcLot(){
+  _lastCalcFn = calcLot;
+  const area = parseFloat(document.getElementById('cl-area').value)||0;
+  const lotes = parseFloat(document.getElementById('cl-lotes').value)||0;
+  const esc  = parseFloat(document.getElementById('cl-esc').value)||1;
+  const compl = parseFloat(document.getElementById('cl-compl').value)||1;
+  if(!area) return;
+  const base = Math.max(8000, area*0.52 + lotes*320);
+  const mid  = base*esc*compl;
+  renderCalcResult('res-lot', mid*.55, mid, mid*1.8, [
+    ['Base (área + lotes)', fmtR(Math.max(8000,area*0.52+lotes*320))],
+    ['Escopo', 'fator ×'+esc],
+    ['Complexidade', 'fator ×'+compl],
+    ['ART e relatório', fmtR(600)]
+  ]);
+}
+
+function calcCar(){
+  _lastCalcFn = calcCar;
+  const area = parseFloat(document.getElementById('cc-area').value)||0;
+  const compl = parseFloat(document.getElementById('cc-compl').value)||1;
+  const shp  = parseFloat(document.getElementById('cc-shp').value)||1;
+  const rl   = parseFloat(document.getElementById('cc-rl').value)||1;
+  if(!area) return;
+  const base = Math.max(300, area*4);
+  const mid  = base*compl*shp*rl;
+  renderCalcResult('res-car', mid*.55, mid, mid*1.8, [
+    ['Inscrição base SICAR', fmtR(base)],
+    ['Complexidade', 'fator ×'+compl],
+    ['Shapefile/mapeamento', shp<1?'Não incluso':'incluso'],
+    ['Reserva Legal', rl>1?'incluso':'Não incluso'],
+    ['ART e relatório', fmtR(400)]
+  ]);
+}
+
+function calcPer(){
+  _lastCalcFn = calcPer;
+  const tipo = parseFloat(document.getElementById('cper-tipo').value)||1;
+  const area = parseFloat(document.getElementById('cper-area').value)||1000;
+  const compl = parseFloat(document.getElementById('cper-compl').value)||1;
+  const dil  = parseFloat(document.getElementById('cper-dil').value)||1;
+  const mid  = (3000 + 1200*dil)*tipo*compl + area*0.15;
+  renderCalcResult('res-per', mid*.6, mid, mid*1.8, [
+    ['Honorários base laudo', fmtR(3000*tipo)],
+    ['Diligências de campo', fmtR(1200*dil)],
+    ['Complexidade', 'fator ×'+compl],
+    ['Levantamento topog.', fmtR(area*0.15)],
+    ['Elaboração e ART', fmtR(600)]
+  ]);
+}
+
+function calcEst(){
+  _lastCalcFn = calcEst;
+  const ext  = parseFloat(document.getElementById('ce-ext').value)||0;
+  const tipo = parseFloat(document.getElementById('ce-tipo').value)||1;
+  const relv = parseFloat(document.getElementById('ce-relv').value)||1;
+  const clas = parseFloat(document.getElementById('ce-clas').value)||1;
+  if(!ext) return;
+  const mid = ext*900*tipo*relv*clas;
+  renderCalcResult('res-est', mid*.6, mid, mid*1.6, [
+    ['Levant. topog. base', fmtR(ext*900)],
+    ['Tipo de projeto', 'fator ×'+tipo],
+    ['Relevo', 'fator ×'+relv],
+    ['Classe da via', 'fator ×'+clas],
+    ['Relatório + ART', fmtR(600)]
+  ]);
+}
+
+function calcVis(){
+  _lastCalcFn = calcVis;
+  const fin  = parseFloat(document.getElementById('cv-fin').value)||1;
+  const hrs  = parseFloat(document.getElementById('cv-hrs').value)||2;
+  const dist = parseFloat(document.getElementById('cv-dist').value)||0;
+  const rel  = parseFloat(document.getElementById('cv-rel').value)||1;
+  const mid  = hrs*280*fin*rel + mob(dist);
+  renderCalcResult('res-vis', mid*.65, mid, mid*1.6, [
+    ['Hora técnica de campo', fmtR(hrs*280)],
+    ['Finalidade', 'fator ×'+(fin*rel).toFixed(2)],
+    ['Deslocamento', fmtR(mob(dist))],
+    ['Parecer / ART', fmtR(400)]
+  ]);
+}
+</script>
+</body>
+</html>
